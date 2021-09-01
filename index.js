@@ -8,6 +8,37 @@ const app = express();
 const port = 8080;
 
 
+// Generate Color Files Data
+const generateColorFilesData = async (file) => {
+  const filePath = path.join(__dirname, `assets/svg/${file}.svg`);
+  const colorFileDir = path.join(__dirname, `assets/colors/${file}`);
+
+  if (!fs.existsSync(colorFileDir)) {
+    fs.mkdirSync(colorFileDir);
+  }
+
+  // Create colored png files
+  const colors = {
+    yellow: 'rgb(223, 156, 49)', 
+    red: 'rgb(239, 68, 68)', 
+    blue: 'rgb(99, 102, 241)', 
+    green: 'rgb(16, 185, 129)'
+  };
+
+  // Create png file instance
+  const svgFile = fs.readFileSync(filePath);
+
+  return Object.keys(colors).map(color => {
+    // Create the colored png file
+    sharp(svgFile)
+      .tint(colors[color])
+      .toFile(`assets/colors/${file}/${file}-${color}.png`)
+      .catch((err) => {
+        console.error(err);
+      });
+  });
+}
+
 // Get Files function
 const getFiles = async (dir) => {
   return new Promise((resolve, reject) => {
@@ -19,6 +50,9 @@ const getFiles = async (dir) => {
       // Map the list of files to include the desired information
       // name, 
       const fileData = files.map(file => {
+        // Generate all the color files data
+        generateColorFilesData(file.split('.')[0]);
+
         // Format the file name
         const fileName = file.split('.')[0].split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' ');
 
@@ -43,41 +77,6 @@ const getFiles = async (dir) => {
   });
 }
 
-// Generate Color Files Data
-const generateColorFilesData = async (file) => {
-  const filePath = path.join(__dirname, `assets/svg/${file}.svg`);
-
-  // Create colored png files
-  const colors = {
-    yellow: 'rgb(223, 156, 49)', 
-    red: 'rgb(239, 68, 68)', 
-    blue: 'rgb(99, 102, 241)', 
-    green: 'rgb(16, 185, 129)'
-  };
-
-  // Create png file instance
-  const svgFile = fs.readFileSync(filePath);
-
-  return Object.keys(colors).map(color => {
-    // Create the colored png file
-    sharp(svgFile)
-      .tint(colors[color])
-      .toFile(`assets/colors/${file}/${file}-${color}.png`)
-      .then(() => {
-        // Add file data to colorFilesData
-        return {
-          name: `${file}-${color}`,
-          slug: `${file}-${color}`,
-          file: `${file}-${color}.png`,
-          uri: `http://localhost:${port}/assets/colors/${file}/${file}-${color}.png`,
-        };
-      })
-      .catch((err) => {
-        console.error(err);
-      });
-  });
-}
-
 // Get a single file
 const getFile = async (file) => {
   const filePath = path.join(__dirname, `assets/png/${file}.png`);
@@ -91,33 +90,27 @@ const getFile = async (file) => {
   const colorFileDir = path.join(__dirname, `assets/colors/${file}`);
   let colorFilesData = [];
 
-  if (!fs.existsSync(colorFileDir)) {
-    fs.mkdirSync(colorFileDir);
-
-    // Create the colored png files
-    colorFilesData = await generateColorFilesData(file);
-    
-  } else {
-    // Check if there are assets in the directory
-    const colorFiles = fs.readdirSync(colorFileDir);
-    if (colorFiles.length > 0) {
-      // if there are assets, return the list of files
-      colorFiles.forEach(colorFile => {
-        // Return the file data object
-        colorFilesData.push({
-          name: colorFile.split('.')[0],
-          slug: colorFile.split('.')[0],
-          file: colorFile,
-          uri: `http://localhost:${port}/assets/colors/${file}/${colorFile}`,
-        });
-      })
-    } else {
-      // Create the colored png files
-      colorFilesData = await generateColorFilesData(file);
-    }
-  }
-
+  // Generate color files data for given file
+  await generateColorFilesData(file);
+  
   return new Promise((resolve, reject) => {
+
+    // Add the color files data to the colorFilesData array
+    const colorFiles = fs.readdirSync(colorFileDir);
+    
+    colorFiles.forEach(colorFile => {
+      // Return the file data object
+      colorFilesData.push({
+        name: colorFile.split('.')[0],
+        slug: colorFile.split('.')[0],
+        file: colorFile,
+        uri: `http://localhost:${port}/assets/colors/${file}/${colorFile}`,
+      });
+    })
+
+    // Generate zip file for color directory
+
+
     // Create a file data object
     const fileData = {
       name: file.split('.')[0].split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' '),
@@ -125,7 +118,8 @@ const getFile = async (file) => {
       uri: `http://localhost:${port}/assets/png/${file}.png`,
       size: fileSizeInKb,
       svg: fs.readFileSync(svgFilePath, 'utf8'),
-      colors: colorFilesData
+      colors: colorFilesData,
+      download: '',
     }
     // Resolve the promise with the file data
     resolve(fileData);
