@@ -1,0 +1,17 @@
+{
+  "name": "olympic-backend",
+  "version": "1.0.0",
+  "description": "Backend for olympic app",
+  "main": "index.js",
+  "author": "Kyle",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "global": "^4.4.0",
+    "jshint": "^2.13.1",
+    "sharp": "^0.29.0"
+  }
+}
