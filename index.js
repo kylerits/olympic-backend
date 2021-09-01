@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp');
+const AdmZip = require('adm-zip');
 
 // Start up an express app to create routes for API endpoints
 const express = require('express');
@@ -39,6 +40,23 @@ const generateColorFilesData = async (file) => {
   });
 }
 
+const generateZip = async (file) => {
+  const zip = new AdmZip();
+  const colorFileDir = path.join(__dirname, `assets/colors/${file}`);
+  const zipFileDir = path.join(__dirname, `assets/zip`);
+
+  if (!fs.existsSync(zipFileDir)) {
+    fs.mkdirSync(zipFileDir);
+  }
+
+  // Add the color files to the zip
+  const colorFiles = fs.readdirSync(colorFileDir);
+  colorFiles.forEach(colorFile => {
+    zip.addLocalFile(`assets/colors/${file}/${colorFile}`);
+  });
+  zip.writeZip(`${zipFileDir}/${file}.zip`);
+}
+
 // Get Files function
 const getFiles = async (dir) => {
   return new Promise((resolve, reject) => {
@@ -50,8 +68,13 @@ const getFiles = async (dir) => {
       // Map the list of files to include the desired information
       // name, 
       const fileData = files.map(file => {
+        const slug = file.split('.')[0];
+
         // Generate all the color files data
-        generateColorFilesData(file.split('.')[0]);
+        generateColorFilesData(slug);
+
+        // Generate the zip file
+        generateZip(slug);
 
         // Format the file name
         const fileName = file.split('.')[0].split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' ');
@@ -63,7 +86,7 @@ const getFiles = async (dir) => {
         // Return the file data object
         return {
           name: fileName,
-          slug: file.split('.')[0],
+          slug: slug,
           file: file,
           path: path.join(dir, file),
           uri: `http://localhost:${port}/assets/png/${file}`,
@@ -92,6 +115,8 @@ const getFile = async (file) => {
 
   // Generate color files data for given file
   await generateColorFilesData(file);
+
+  await generateZip(file);
   
   return new Promise((resolve, reject) => {
 
@@ -106,10 +131,7 @@ const getFile = async (file) => {
         file: colorFile,
         uri: `http://localhost:${port}/assets/colors/${file}/${colorFile}`,
       });
-    })
-
-    // Generate zip file for color directory
-
+    });
 
     // Create a file data object
     const fileData = {
@@ -119,7 +141,7 @@ const getFile = async (file) => {
       size: fileSizeInKb,
       svg: fs.readFileSync(svgFilePath, 'utf8'),
       colors: colorFilesData,
-      download: '',
+      downloadUri: `http://localhost:${port}/assets/zip/${file}.zip`,
     }
     // Resolve the promise with the file data
     resolve(fileData);
