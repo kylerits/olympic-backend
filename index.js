@@ -56,30 +56,26 @@ const generateColorFilesData = async (file) => {
   };
 
   // Create png file instance
-  const svgFile = fs.readFileSync(filePath, 'utf-8');
+  const svgFile = fs.readFileSync(filePath);
 
-  let colorFilesData = []
-
-  Object.keys(colors).forEach(color => {
+  return Object.keys(colors).map(color => {
     // Create the colored png file
     sharp(svgFile)
       .tint(colors[color])
       .toFile(`assets/colors/${file}/${file}-${color}.png`)
       .then(() => {
         // Add file data to colorFilesData
-        colorFilesData.push({
+        return {
           name: `${file}-${color}`,
           slug: `${file}-${color}`,
           file: `${file}-${color}.png`,
           uri: `http://localhost:${port}/assets/colors/${file}/${file}-${color}.png`,
-        });
+        };
       })
       .catch((err) => {
         console.error(err);
       });
   });
-
-  return colorFilesData;
 }
 
 // Get a single file
