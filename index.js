@@ -4,10 +4,12 @@ const sharp = require('sharp');
 const AdmZip = require('adm-zip');
 
 // Start up an express app to create routes for API endpoints
+const cors = require('cors');
 const express = require('express');
 const app = express();
 const port = 8080;
 
+app.use(cors());
 
 // Generate Color Files Data
 const generateColorFilesData = async (file) => {
@@ -176,5 +178,5 @@ app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 // Create a listener to start the server
 app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
+  console.log(`CORS-enabled web server listening on port ${port}`);
 });
